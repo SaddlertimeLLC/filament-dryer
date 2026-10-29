@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f6feb">
+  <title>Filament Dryer Log</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <button id="backBtn" class="icon-btn hidden" aria-label="Back">&larr;</button>
+    <h1 id="title">Filament Dryer</h1>
+  </header>
+
+  <main>
+    <!-- Home: new session + history -->
+    <section id="homeView">
+      <div class="card">
+        <h2>Start drying</h2>
+        <label>Name / spool
+          <input id="nName" placeholder="e.g. Black PETG #2">
+        </label>
+        <label>Material
+          <select id="nMaterial"></select>
+        </label>
+        <p id="matHint" class="hint"></p>
+        <div class="row">
+          <label>Oven temp (&deg;C)
+            <input id="nTemp" type="number" inputmode="decimal">
+          </label>
+          <label>Target moisture %
+            <input id="nTarget" type="number" inputmode="decimal" step="0.01">
+          </label>
+        </div>
+        <div class="row">
+          <label>Empty spool weight (g)
+            <input id="nTare" type="number" inputmode="decimal" placeholder="e.g. 200">
+          </label>
+          <label>Starting weight (g)
+            <input id="nStart" type="number" inputmode="decimal" placeholder="spool + filament">
+          </label>
+        </div>
+        <div class="row">
+          <label>Weigh every (min)
+            <input id="nInterval" type="number" inputmode="numeric" value="30">
+          </label>
+          <label>Scale resolution (g)
+            <input id="nRes" type="number" inputmode="decimal" step="0.1" value="1">
+          </label>
+        </div>
+        <p class="hint">Empty-spool weight lets the app turn grams into moisture %. Weigh an empty spool of the same brand, or check the maker's site. Leave blank if unknown (the % will read a bit low).</p>
+        <button id="startBtn" class="primary big">Start &ndash; put spool in oven</button>
+      </div>
+
+      <div class="card">
+        <h2>History</h2>
+        <ul id="historyList" class="list"></ul>
+      </div>
+
+      <details class="card">
+        <summary>How the estimate works</summary>
+        <p>Filament dries fast at first, then slows. The app fits your weigh-ins to
+          <code>w(t) = dry + water&middot;e<sup>&minus;t/&tau;</sup></code>, where <em>t</em> is time in the oven only (time out of the oven is not counted).
+          This projects the fully-dry weight, so it can work out:</p>
+        <ul>
+          <li><b>Moisture %</b> = (current &minus; dry weight) &divide; (dry weight &minus; empty spool).</li>
+          <li><b>Time to target</b>: when projected moisture drops to your target %.</li>
+          <li><b>Diminishing returns</b>: when the loss over one weigh interval would be smaller than your scale can detect. Drying longer won't show any measurable change.</li>
+        </ul>
+        <p>You need at least 3 weigh-ins (including the start) for a projection. Early on, while the loss is still roughly a straight line, the projection is rough. It firms up as the curve bends. Target % values are practical rules of thumb, so adjust them to taste. A scale that reads to 0.1&nbsp;g helps a lot.</p>
+      </details>
+    </section>
+
+    <!-- Active / past session -->
+    <section id="sessionView" class="hidden">
+      <div class="card timer-card">
+        <div id="statusLabel" class="status"></div>
+        <div id="ovenTime" class="timer">0:00:00</div>
+        <div id="subTimer" class="hint center"></div>
+        <div id="actionBtns" class="btn-col"></div>
+      </div>
+
+      <div class="card">
+        <h2>Status</h2>
+        <div id="verdict" class="verdict"></div>
+        <div id="stats" class="stats"></div>
+      </div>
+
+      <div class="card">
+        <h2>Drying curve</h2>
+        <div id="chart"></div>
+        <div class="legend">
+          <span><i class="dot"></i>weigh-ins</span>
+          <span><i class="line fit"></i>projection</span>
+          <span><i class="line target"></i>target</span>
+          <span><i class="line dry"></i>dry weight</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Log</h2>
+        <table class="log">
+          <thead><tr><th>Oven time</th><th>Weight</th><th>Loss</th><th>Moist.%</th><th></th></tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
+        <div class="btn-row">
+          <button id="exportBtn">Export CSV</button>
+          <button id="deleteSessionBtn" class="danger">Delete session</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <label class="toggle"><input type="checkbox" id="wakeLock"> Keep screen on (makes reminders reliable)</label>
+        <button id="notifBtn" class="hidden">Enable reminder notifications</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Weight entry dialog -->
+  <dialog id="weightDlg">
+    <form method="dialog" id="weightForm">
+      <h2>Weigh the spool</h2>
+      <p id="weightDlgInfo" class="hint"></p>
+      <input id="weightInput" type="number" inputmode="decimal" step="any" placeholder="grams" required>
+      <div class="btn-row">
+        <button value="cancel" formnovalidate>Later</button>
+        <button value="ok" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="fit.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
